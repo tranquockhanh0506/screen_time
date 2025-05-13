@@ -109,39 +109,47 @@ class _MyAppState extends State<MyApp> {
         appBar: AppBar(title: const Text('Plugin example app')),
         body: Padding(
           padding: const EdgeInsets.all(16.0),
-          child: Column(
-            children: [
-              Text('Running on: $_platformVersion\n'),
-              ElevatedButton(
-                onPressed: () => requestIosPermission(),
-                child: const Text('Request IOS Permission'),
-              ),
-              const SizedBox(height: 20),
-              ElevatedButton(
-                onPressed: () => blockOrUnblocIosApp(),
-                child: const Text('Block iOS App'),
-              ),
-              const SizedBox(height: 20),
+          child: Center(
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  Text('Running on: $_platformVersion\n'),
+                  ElevatedButton(
+                    onPressed: () => requestIosPermission(),
+                    child: const Text('Request IOS Permission'),
+                  ),
+                  const SizedBox(height: 20),
+                  ElevatedButton(
+                    onPressed: () => blockOrUnblocIosApp(),
+                    child: const Text('Block iOS App'),
+                  ),
+                  const SizedBox(height: 20),
 
-              ElevatedButton(
-                onPressed: () => checkAndroidPermission(),
-                child: const Text('Check Android Permission'),
+                  ElevatedButton(
+                    onPressed: () => checkAndroidPermission(),
+                    child: const Text('Check Android Permission'),
+                  ),
+                  const SizedBox(height: 20),
+                  ElevatedButton(
+                    onPressed: () => requestAndroidPermission(),
+                    child: const Text('Request Android Permission'),
+                  ),
+                  const SizedBox(height: 20),
+
+                  ElevatedButton(
+                    onPressed: () => blockAndroidApps(),
+                    child: const Text('Block Android Apps'),
+                  ),
+                  const SizedBox(height: 20),
+                  ElevatedButton(
+                    onPressed: () => unBlockAndroidApps(),
+                    child: const Text('Un-Block Android Apps'),
+                  ),
+                ],
               ),
-              const SizedBox(height: 20),
-              ElevatedButton(
-                onPressed: () => requestAndroidPermission(),
-                child: const Text('Request Android Permission'),
-              ),
-              ElevatedButton(
-                onPressed: () => blockAndroidApps(),
-                child: const Text('Block Android Apps'),
-              ),
-              const SizedBox(height: 20),
-              ElevatedButton(
-                onPressed: () => unBlockAndroidApps(),
-                child: const Text('Un-Block Android Apps'),
-              ),
-            ],
+            ),
           ),
         ),
       ),

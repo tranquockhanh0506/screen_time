@@ -15,10 +15,15 @@ import io.flutter.plugin.common.MethodChannel.Result
 import androidx.annotation.NonNull
 import kotlinx.coroutines.*
 import android.Manifest
+import java.util.Calendar
+import io.flutter.embedding.engine.plugins.activity.ActivityAware
+import io.flutter.embedding.engine.plugins.activity.ActivityPluginBinding
 
-class AppLimiterPlugin: FlutterPlugin, MethodCallHandler {
+
+class AppLimiterPlugin: FlutterPlugin, MethodCallHandler,ActivityAware {
     private lateinit var channel: MethodChannel
-
+    private lateinit var context: Context
+    private var activity: Activity? = null
     // Coroutine scope for background tasks
     var job = Job()
     val scope = CoroutineScope(Dispatchers.Default + job)
@@ -104,6 +109,7 @@ class AppLimiterPlugin: FlutterPlugin, MethodCallHandler {
     override fun onAttachedToEngine(@NonNull flutterPluginBinding: FlutterPlugin.FlutterPluginBinding) {
         channel = MethodChannel(flutterPluginBinding.binaryMessenger, "app_limiter")
         channel.setMethodCallHandler(this)
+        context = flutterPluginBinding.applicationContext
     }
 
     override fun onMethodCall(call: MethodCall, result: Result) {
@@ -113,23 +119,25 @@ class AppLimiterPlugin: FlutterPlugin, MethodCallHandler {
             }
 
             "blockApp" -> {
-                // Start the app blocking service
+                val sharedPreferences = context.getSharedPreferences("app_settings", Context.MODE_PRIVATE)
+                sharedPreferences.edit().putBoolean("Blocking", true).apply()
                 val intent = Intent(context, BlockAppService::class.java)
                 context.startService(intent)
                 result.success(null)
             }
 
             "unblockApp" -> {
-                // Stop the app blocking service
+                val sharedPreferences = context.getSharedPreferences("app_settings", Context.MODE_PRIVATE)
+                sharedPreferences.edit().putBoolean("Blocking", false).apply()
                 val intent = Intent(context, BlockAppService::class.java)
                 context.stopService(intent)
                 result.success(null)
             }
 
             "checkPermission" -> {
-                val hasOverlayPermission = checkDrawOverlayPermission(context)
-                val hasQueryPermission = checkQueryAllPackagesPermission(context)
-                val hasUsageStatsPermission = hasUsageStatsPermission(context)
+                val hasOverlayPermission = activity?.let { checkDrawOverlayPermission(it) } ?: false
+                val hasQueryPermission = activity?.let { requestQueryAllPackagesPermission(it) } ?: false
+                val hasUsageStatsPermission = context.let { hasUsageStatsPermission(it) }
 
                 if (hasOverlayPermission && hasQueryPermission && hasUsageStatsPermission) {
                     result.success("approved")
@@ -139,19 +147,28 @@ class AppLimiterPlugin: FlutterPlugin, MethodCallHandler {
             }
 
             "requestAuthorization" -> {
-                val hasOverlayPermission = requestDrawOverlayPermission(context, 1234)
-                val hasQueryPermission = requestQueryAllPackagesPermission(context)
-                val hasUsageStatsPermission = hasUsageStatsPermission(context)
-                if (!hasUsageStatsPermission) {
-                    requestUsageStatsPermission(context)
-                }
+    val currentActivity = activity
+    if (currentActivity == null) {
+        result.error("NO_ACTIVITY", "Activity is null", null)
+        return
+    }
 
-                if (hasOverlayPermission && hasQueryPermission && hasUsageStatsPermission) {
-                    result.success("approved")
-                } else {
-                    result.success("denied")
-                }
-            }
+    if (!checkDrawOverlayPermission(currentActivity)) {
+        requestDrawOverlayPermission(currentActivity, 1234)
+    }
+
+    if (!checkQueryAllPackagesPermission(context)) {
+        requestQueryAllPackagesPermission(currentActivity)
+    }
+
+    if (!hasUsageStatsPermission(context)) {
+        requestUsageStatsPermission(currentActivity)
+    }
+
+
+    result.success("settings_opened")
+}
+
 
             else -> result.notImplemented()
         }
@@ -160,4 +177,20 @@ class AppLimiterPlugin: FlutterPlugin, MethodCallHandler {
     override fun onDetachedFromEngine(binding: FlutterPlugin.FlutterPluginBinding) {
         channel.setMethodCallHandler(null)
     }
+    override fun onAttachedToActivity(binding: ActivityPluginBinding) {
+        activity = binding.activity
+    }
+    
+    override fun onDetachedFromActivity() {
+        activity = null
+    }
+    
+    override fun onReattachedToActivityForConfigChanges(binding: ActivityPluginBinding) {
+        activity = binding.activity
+    }
+    
+    override fun onDetachedFromActivityForConfigChanges() {
+        activity = null
+    }
+    
 }
