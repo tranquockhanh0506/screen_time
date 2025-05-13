@@ -1,0 +1,28 @@
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+  package="com.example.app_limiter">
+        <!-- Declare the service that will block apps -->
+        <service
+            android:name=".BlockAppService"
+            android:enabled="true"
+            android:exported="false" />
+
+        <!-- Declare the receiver that listens for boot events -->
+        <receiver
+            android:name=".BootReceiver"
+            android:enabled="true"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
+                <category android:name="android.intent.category.DEFAULT" />
+            </intent-filter>
+        </receiver>
+
+        <!-- Declare any other receiver like AmarmReceiver if needed -->
+        <receiver
+            android:name=".AmarmReceiver"
+            android:enabled="true"
+            android:exported="false" />
+            
+    </application>
+
+</manifest>
