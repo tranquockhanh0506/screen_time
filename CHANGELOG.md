@@ -1,3 +1,6 @@
-## 0.0.1
+## [0.0.1] - 2025-05-14
 
-* TODO: Describe initial release.
+- Initial release.
+- Supports blocking/unblocking Android and iOS apps.
+- Handles permission requests on both platforms.
+- Added helper methods to check and request platform-specific permissions.

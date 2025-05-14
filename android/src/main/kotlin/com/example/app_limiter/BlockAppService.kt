@@ -157,7 +157,6 @@ class BlockAppService : Service() {
         windowManager = getSystemService(Context.WINDOW_SERVICE) as WindowManager
         overlayView = LayoutInflater.from(this).inflate(R.layout.block_overlay, null)
 
-        // 通知チャンネルを作成（APIレベル26以降）
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             val channel = NotificationChannel(CHANNEL_ID, "BlockAppService Channel", NotificationManager.IMPORTANCE_LOW)
             channel.setShowBadge(false);
@@ -165,13 +164,11 @@ class BlockAppService : Service() {
             manager.createNotificationChannel(channel)
         }
 
-        // フォアグラウンドサービスのための通知を作成
         val notification = NotificationCompat.Builder(this, CHANNEL_ID)
             .setContentTitle("BlockAppService")
             .setContentText("Service is running...")
             .build()
 
-        // startForegroundを呼び出す
         startForeground(NOTIFICATION_ID, notification)
 
         blockApps()
@@ -183,6 +180,5 @@ class BlockAppService : Service() {
 
     override fun onDestroy() {
         super.onDestroy()
-        // 必要に応じてリソースの解放や終了処理を行います。
     }
 }
