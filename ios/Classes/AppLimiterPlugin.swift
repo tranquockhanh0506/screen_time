@@ -5,15 +5,33 @@ import FamilyControls
 import ManagedSettings
 import SwiftUI
 
+/// Global variable to store the current method being called
+/// Used for communication between different UI components
 var globalMethodCall = ""
 
+/// AppLimiterPlugin: Main plugin class that handles the communication between Flutter and iOS
+/// Implements FlutterPlugin protocol to handle method channel calls
+/// This plugin provides functionality for:
+/// - Getting platform version
+/// - Blocking/unblocking apps using Screen Time API
+/// - Handling permissions for Screen Time functionality
 public class AppLimiterPlugin: NSObject, FlutterPlugin {
+    /// Registers the plugin with the Flutter engine
+    /// Sets up the method channel for communication
+    /// - Parameter registrar: The plugin registrar used to set up the channel
     public static func register(with registrar: FlutterPluginRegistrar) {
         let channel = FlutterMethodChannel(name: "app_limiter", binaryMessenger: registrar.messenger())
         let instance = AppLimiterPlugin()
         registrar.addMethodCallDelegate(instance, channel: channel)
     }
 
+    /// Handles method calls from Flutter
+    /// Supported methods:
+    /// - getPlatformVersion: Returns the current iOS version
+    /// - blockApp: Initiates the app blocking process (iOS 16+ only)
+    /// - requestPermission: Requests Screen Time permissions (iOS 16+ only)
+    /// - Parameter call: The method call from Flutter
+    /// - Parameter result: The callback to send the result back to Flutter
     public func handle(_ call: FlutterMethodCall, result: @escaping FlutterResult) {
         switch call.method {
         case "getPlatformVersion":

@@ -3,7 +3,9 @@ import 'package:flutter/services.dart';
 
 import 'app_limiter_platform_interface.dart';
 
+/// An implementation of [AppLimiterPlatform] that uses method channels.
 class MethodChannelAppLimiter extends AppLimiterPlatform {
+  /// The method channel used to interact with the native platform.
   final methodChannel = const MethodChannel('app_limiter');
 
   @override
@@ -14,7 +16,7 @@ class MethodChannelAppLimiter extends AppLimiterPlatform {
     return version;
   }
 
-  // iOS-specific method for blocking an app
+  /// iOS-specific implementation for blocking and unblocking apps
   @override
   Future<void> blockAndUnblockIOSApp() async {
     try {
@@ -24,6 +26,7 @@ class MethodChannelAppLimiter extends AppLimiterPlatform {
     }
   }
 
+  /// Requests iOS permissions through the native implementation
   @override
   Future<bool> requestIosPermission() async {
     try {
@@ -35,6 +38,7 @@ class MethodChannelAppLimiter extends AppLimiterPlatform {
     }
   }
 
+  /// Checks Android permission status through the native implementation
   @override
   Future<bool> isAndroidPermissionAllowed() async {
     try {
@@ -50,6 +54,7 @@ class MethodChannelAppLimiter extends AppLimiterPlatform {
     }
   }
 
+  /// Requests Android permissions through the native implementation
   @override
   Future<void> requestAndroidPermission() async {
     try {
@@ -59,7 +64,7 @@ class MethodChannelAppLimiter extends AppLimiterPlatform {
     }
   }
 
-  // Android-specific method for blocking an app
+  /// Android-specific implementation for blocking apps
   @override
   Future<void> blockAndroidApps() async {
     try {
@@ -69,7 +74,7 @@ class MethodChannelAppLimiter extends AppLimiterPlatform {
     }
   }
 
-  // Android-specific method for unblocking an app
+  /// Android-specific implementation for unblocking apps
   @override
   Future<void> unblockAndroidApps() async {
     try {
