@@ -8,3 +8,7 @@
 
 ## [0.0.2] - 2025-05-21
 - Added Dartdoc comments for public API
+
+## [0.0.3] - 2025-05-21
+- Added Dartdoc comments for public API
+- Readme File updated for easy configuration 

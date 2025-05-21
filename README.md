@@ -61,6 +61,13 @@ Add the following to your Info.plist:
 <true/>
 ```
 
+
+```
+Enable the Capability of Family Controll from Xcode:
+```
+
+
+
 📱 Platform Support
 
 | Platform | Support |
