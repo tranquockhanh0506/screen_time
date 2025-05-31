@@ -12,3 +12,7 @@
 ## [0.0.3] - 2025-05-21
 - Added Dartdoc comments for public API
 - Readme File updated for easy configuration 
+
+## [0.0.4] - 2025-05-31
+- Block Overlay Hide Issue Fixed
+- Readme File updated for configuration 
