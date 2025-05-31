@@ -239,21 +239,27 @@ class AppLimiterPlugin: FlutterPlugin, MethodCallHandler,ActivityAware {
         result.error("NO_ACTIVITY", "Activity is null", null)
         return
     }
+    val hasOverlayPermission = checkDrawOverlayPermission(currentActivity)
+    val hasQueryPermission = checkQueryAllPackagesPermission(context)
+    val hasUsageStatsPermission = hasUsageStatsPermission(context)
 
-    if (!checkDrawOverlayPermission(currentActivity)) {
-        requestDrawOverlayPermission(currentActivity, 1234)
+    when {
+        !hasOverlayPermission -> {
+            requestDrawOverlayPermission(currentActivity, 1234)
+            result.success("overlay_permission_requested")
+        }
+        !hasQueryPermission -> {
+            requestQueryAllPackagesPermission(currentActivity)
+            result.success("query_permission_requested")
+        }
+        !hasUsageStatsPermission -> {
+            requestUsageStatsPermission(currentActivity)
+            result.success("usage_stats_permission_requested")
+        }
+        else -> {
+            result.success("all_permissions_granted")
+        }
     }
-
-    if (!checkQueryAllPackagesPermission(context)) {
-        requestQueryAllPackagesPermission(currentActivity)
-    }
-
-    if (!hasUsageStatsPermission(context)) {
-        requestUsageStatsPermission(currentActivity)
-    }
-
-
-    result.success("settings_opened")
 }
 
 

@@ -28,13 +28,15 @@ import java.util.Calendar
 const val CHANNEL_ID = "BlockAppService_Channel_ID"
 const val NOTIFICATION_ID = 1
 
-
 class BlockAppService : Service() {
     private var windowManager: WindowManager? = null
     private var overlayView: View? = null
     private val CHANNEL = "flutter_screentime"
     private var isOverlayDisplayed = false
     private val userApps = ArrayList<ResolveInfo>()
+    private var handler: Handler? = null
+    private var blockingRunnable: Runnable? = null
+    private var currentForegroundApp: String? = null
 
     val params = WindowManager.LayoutParams(
         WindowManager.LayoutParams.MATCH_PARENT,
@@ -44,97 +46,145 @@ class BlockAppService : Service() {
         PixelFormat.TRANSLUCENT
     )
 
-
     fun isDeviceLocked(context: Context): Boolean {
         val keyguardManager = context.getSystemService(KEYGUARD_SERVICE) as KeyguardManager
-
         return keyguardManager.isKeyguardLocked
     }
 
+    fun getCurrentForegroundApp(context: Context): String? {
+        val usageStatsManager = context.getSystemService(Context.USAGE_STATS_SERVICE) as UsageStatsManager
+        val endTime = System.currentTimeMillis()
+        val beginTime = endTime - 1000 * 10 // Last 10 seconds for more recent data
+
+        val usageEvents = usageStatsManager.queryEvents(beginTime, endTime)
+        var lastEvent: UsageEvents.Event? = null
+        
+        while (usageEvents.hasNextEvent()) {
+            val event = UsageEvents.Event()
+            usageEvents.getNextEvent(event)
+            if (event.eventType == UsageEvents.Event.MOVE_TO_FOREGROUND) {
+                lastEvent = event
+            }
+        }
+        
+        return lastEvent?.packageName
+    }
+
+    fun isBlockedAppInForeground(context: Context): Boolean {
+        val foregroundApp = getCurrentForegroundApp(context)
+        
+        // Update current foreground app
+        currentForegroundApp = foregroundApp
+        
+        if (foregroundApp != null) {
+            for (app in userApps) {
+                if (app.activityInfo.packageName == foregroundApp) {
+                    return true
+                }
+            }
+        }
+        return false
+    }
+
+    fun isLauncherApp(resolveInfo: ResolveInfo, context: Context): Boolean {
+        val intent = Intent(Intent.ACTION_MAIN)
+        intent.addCategory(Intent.CATEGORY_HOME)
+        val defaultLauncher = context.packageManager.resolveActivity(intent, PackageManager.MATCH_DEFAULT_ONLY)
+        return resolveInfo.activityInfo.packageName == defaultLauncher?.activityInfo?.packageName
+    }
+
+    private fun showOverlay() {
+        try {
+            if (!isOverlayDisplayed && overlayView?.windowToken == null) {
+                windowManager?.addView(overlayView, params)
+                isOverlayDisplayed = true
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+    }
+
+    private fun hideOverlay() {
+        try {
+            if (isOverlayDisplayed && overlayView?.windowToken != null) {
+                windowManager?.removeView(overlayView)
+                isOverlayDisplayed = false
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+    }
 
     fun blockApps() {
         val intent = Intent(Intent.ACTION_MAIN, null)
         intent.addCategory(Intent.CATEGORY_LAUNCHER)
         val apps: List<ResolveInfo> = packageManager.queryIntentActivities(intent, 0)
 
-        fun isAppInForeground(context: Context): Boolean {
-            val usageStatsManager =
-                context.getSystemService(Context.USAGE_STATS_SERVICE) as UsageStatsManager
-            val endTime = System.currentTimeMillis()
-            val beginTime = endTime - 1000 * 60 * 60 * 24 * 3  // 3 days
-
-            val usageEvents = usageStatsManager.queryEvents(beginTime, endTime)
-            var lastEvent: UsageEvents.Event? = null
-            while (usageEvents.hasNextEvent()) {
-                val event = UsageEvents.Event()
-                usageEvents.getNextEvent(event)
-                if (event.eventType == UsageEvents.Event.MOVE_TO_FOREGROUND) {
-                    lastEvent = event
-                }
-            }
-
-            // Check if the most recent app is in the userApps list
-            if (lastEvent != null) {
-                for (app in userApps) {
-                    if (app.activityInfo.packageName == lastEvent.packageName) {
-                        return true
-                    }
-                }
-            }
-            return false
-        }
-
-        fun isLauncherApp(resolveInfo: ResolveInfo, context: Context): Boolean {
-            val intent = Intent(Intent.ACTION_MAIN)
-            intent.addCategory(Intent.CATEGORY_HOME)
-            val defaultLauncher = context.packageManager.resolveActivity(intent, PackageManager.MATCH_DEFAULT_ONLY)
-            return resolveInfo.activityInfo.packageName == defaultLauncher?.activityInfo?.packageName
-        }
-
-
-        fun blockApp() {
-            val sharedPreferences = getSharedPreferences("app_settings", Context.MODE_PRIVATE)
-            val editor = sharedPreferences.edit()
-
-            Handler(Looper.getMainLooper()).postDelayed(object : Runnable {
-                override fun run() {
-                    val shouldRunLogic = sharedPreferences.getBoolean("Blocking", false)
-                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-                        if (!Settings.canDrawOverlays(this@BlockAppService)|| !hasUsageStatsPermission(this@BlockAppService)) {
-                            editor.putBoolean("isBlocking", false)
-                            editor.apply()
-                        }
-                    }
-                    if (isAppInForeground(this@BlockAppService) && !isDeviceLocked(this@BlockAppService)) {
-                        if (!isOverlayDisplayed && shouldRunLogic && overlayView?.windowToken == null) {
-                            isOverlayDisplayed = true
-                            windowManager?.addView(overlayView, params)
-                        }
-                    } else {
-
-                        if (isOverlayDisplayed && overlayView?.windowToken != null) {
-                            isOverlayDisplayed = false
-                            windowManager?.removeView(overlayView)
-                        }
-                    }
-                    blockApp()
-                }
-            }, 500)
-        }
         userApps.clear()
         // Filter out system apps
         for (app in apps) {
             // Exclude system apps
-            if ((app.activityInfo.packageName == "com.android.chrome" ) ||
+            if ((app.activityInfo.packageName == "com.android.chrome") ||
                 ((app.activityInfo.applicationInfo.flags and ApplicationInfo.FLAG_SYSTEM) == 0 &&
                 !app.activityInfo.name.contains("com.android.launcher") &&
                 !isLauncherApp(app, this) &&
                 app.activityInfo.packageName != this.packageName)
             ) {
-                userApps.add(app) 
+                userApps.add(app)
             }
         }
-        blockApp()
+        
+        startBlockingLoop()
+    }
+
+    private fun startBlockingLoop() {
+        handler = Handler(Looper.getMainLooper())
+        
+        blockingRunnable = object : Runnable {
+            override fun run() {
+                val sharedPreferences = getSharedPreferences("app_settings", Context.MODE_PRIVATE)
+                val shouldBlock = sharedPreferences.getBoolean("Blocking", false)
+                
+                // Check permissions
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                    if (!Settings.canDrawOverlays(this@BlockAppService) || !hasUsageStatsPermission(this@BlockAppService)) {
+                        val editor = sharedPreferences.edit()
+                        editor.putBoolean("Blocking", false)
+                        editor.apply()
+                        hideOverlay()
+                        return
+                    }
+                }
+                
+                if (!shouldBlock) {
+                    hideOverlay()
+                    return
+                }
+                
+                val isDeviceLocked = isDeviceLocked(this@BlockAppService)
+                val isBlockedAppActive = isBlockedAppInForeground(this@BlockAppService)
+                
+                when {
+                    isDeviceLocked -> {
+                        // Device is locked, hide overlay
+                        hideOverlay()
+                    }
+                    isBlockedAppActive -> {
+                        // Blocked app is active, show overlay
+                        showOverlay()
+                    }
+                    else -> {
+                        // No blocked app is active, hide overlay
+                        hideOverlay()
+                    }
+                }
+                
+                // Continue the loop with reduced delay for better responsiveness
+                handler?.postDelayed(this, 200)
+            }
+        }
+        
+        handler?.post(blockingRunnable!!)
     }
 
     fun hasUsageStatsPermission(context: Context): Boolean {
@@ -144,7 +194,6 @@ class BlockAppService : Service() {
             android.os.Process.myUid(),
             context.packageName
         )
-
         return mode == AppOpsManager.MODE_ALLOWED
     }
 
@@ -159,7 +208,7 @@ class BlockAppService : Service() {
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             val channel = NotificationChannel(CHANNEL_ID, "BlockAppService Channel", NotificationManager.IMPORTANCE_LOW)
-            channel.setShowBadge(false);
+            channel.setShowBadge(false)
             val manager = getSystemService(NotificationManager::class.java)
             manager.createNotificationChannel(channel)
         }
@@ -176,9 +225,17 @@ class BlockAppService : Service() {
         return START_STICKY
     }
 
-
-
     override fun onDestroy() {
         super.onDestroy()
+        
+        // Clean up resources
+        handler?.removeCallbacks(blockingRunnable!!)
+        handler = null
+        blockingRunnable = null
+        
+        // Hide overlay if it's showing
+        hideOverlay()
+        
+        println("[DEBUG] onDestroy()")
     }
 }
