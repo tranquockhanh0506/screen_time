@@ -3,7 +3,7 @@
 # Run `pod lib lint app_limiter.podspec` to validate before publishing.
 #
 Pod::Spec.new do |s|
-  s.name             = 'app_limiter'
+  s.name             = 'screen_time'
   s.version          = '0.0.1'
   s.summary          = 'A new Flutter plugin project.'
   s.description      = <<-DESC
