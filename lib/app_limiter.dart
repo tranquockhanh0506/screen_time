@@ -67,4 +67,8 @@ class AppLimiter {
   Future<void> unblocAndroidApp() {
     return AppLimiterPlatform.instance.unblockAndroidApps();
   }
+
+  Future<void> unblockAllIosApps() {
+    return AppLimiterPlatform.instance.unblockAllIosApps();
+  }
 }
