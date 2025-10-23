@@ -83,4 +83,13 @@ class MethodChannelAppLimiter extends AppLimiterPlatform {
       debugPrint('Failed to unblock Android app: ${e.message}');
     }
   }
+
+  @override
+  Future<void> unblockAllIosApps() async {
+    try {
+      await methodChannel.invokeMethod('unblockAppIOS');
+    } on PlatformException catch (e) {
+      debugPrint('Failed to unblock Android app: ${e.message}');
+    }
+  }
 }

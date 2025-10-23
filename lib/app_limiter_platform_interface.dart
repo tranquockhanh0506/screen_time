@@ -50,4 +50,7 @@ abstract class AppLimiterPlatform extends PlatformInterface {
 
   /// Unblocks previously blocked Android apps.
   Future<void> unblockAndroidApps();
+
+  /// Unblocks previously blocked Android apps.
+  Future<void> unblockAllIosApps();
 }
